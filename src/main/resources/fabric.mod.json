@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "shaicraft-economy",
+  "version": "${version}",
+  "name": "ShaiCraft Economy",
+  "description": "A Minecraft economy and trading mod with Pokémon integration using Cobblemon. Created by Shaï.",
+  "authors": [
+    "Shaï"
+  ],
+  "contact": {
+    "homepage": "https://example.com/",
+    "sources": "https://github.com/example/shaicraft-economy"
+  },
+  "license": "MIT",
+  "icon": "assets/shaicraft-economy/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "fr.shai.shaicrafteconomy.ShaiCraftEconomy"
+    ],
+    "client": [
+      "fr.shai.shaicrafteconomy.client.ShaiCraftEconomyClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "fabric-api": "*",
+    "cobblemon": "*"
+  },
+  "suggests": {
+    "another-mod": "*"
+  }
+}

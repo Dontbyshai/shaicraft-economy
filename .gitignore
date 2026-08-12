@@ -1,0 +1,7 @@
+build/
+.gradle/
+.idea/
+*.iml
+run/
+build_log.txt
+gradle/wrapper/gradle-wrapper.jar

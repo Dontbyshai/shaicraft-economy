@@ -1,0 +1,21 @@
+{
+  "gui.shaicraft-economy.shop_title": "March\u00E9 ShaiCraft",
+  "gui.shaicraft-economy.wallet": "PORTEFEUILLE",
+  "gui.shaicraft-economy.tab.items": "ARTICLES",
+  "gui.shaicraft-economy.tab.selling": "VENTE",
+  "gui.shaicraft-economy.tab.pokemon": "POK\u00C9MON",
+  "msg.shaicraft-economy.balance": "Votre solde : %s\u20AC",
+  "msg.shaicraft-economy.balance_other": "Solde de %s : %s\u20AC",
+  "msg.shaicraft-economy.pay_success": "Vous avez pay\u00E9 %s\u20AC \u00E0 %s",
+  "msg.shaicraft-economy.pay_receive": "Vous avez re\u00E7u %s\u20AC de %s",
+  "msg.shaicraft-economy.insufficient_funds": "Fonds insuffisants !",
+  "msg.shaicraft-economy.mining_reward": "R\u00E9compense de minage : +%s\u20AC",
+  "msg.shaicraft-economy.sell_success": "Vendu %dx %s pour %s\u20AC",
+  "msg.shaicraft-economy.buy_success": "Achet\u00E9 %s pour %s\u20AC",
+  "msg.shaicraft-economy.pokemon_buy_success": "Vous avez achet\u00E9 un %s pour %s\u20AC",
+  "msg.shaicraft-economy.pokemon_sell_success": "Vendu %s pour %s\u20AC",
+  "msg.shaicraft-economy.not_holding_anything": "Vous ne tenez rien !",
+  "msg.shaicraft-economy.cannot_sell_item": "Cet objet ne peut pas \u00EAtre vendu !",
+  "msg.shaicraft-economy.cannot_pay_self": "Vous ne pouvez pas vous payer vous-m\u00EAme !",
+  "msg.shaicraft-economy.no_pokemon_in_slot": "Aucun Pok\u00E9mon dans le slot %d !"
+}
