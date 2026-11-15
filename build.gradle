@@ -3,6 +3,13 @@ plugins {
     id 'maven-publish'
 }
 
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
 repositories {
     maven {
         name = "Fabric"
@@ -24,10 +31,21 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    modImplementation "net.fabricmc:fabric-language-kotlin:1.13.0+kotlin.2.1.0"
 
     // Cobblemon dependency
     modImplementation "com.cobblemon:fabric:${project.cobblemon_version}"
+
+    // Cobblemon est écrit en Kotlin. Cette bibliothèque sert seulement à compiler
+    // contre ses classes. Elle n'est pas incluse dans le jar : en jeu, Cobblemon
+    // apporte déjà Fabric Language Kotlin.
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 processResources {
@@ -55,6 +73,6 @@ java {
 
 jar {
     from("LICENSE") {
-        rename { "${it}_${project.archivesBaseName}" }
+        rename { "LICENSE_${base.archivesName.get()}" }
     }
 }

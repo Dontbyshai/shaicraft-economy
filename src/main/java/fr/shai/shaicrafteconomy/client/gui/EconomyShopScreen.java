@@ -174,16 +174,16 @@ public class EconomyShopScreen extends HandledScreen<EconomyShopScreenHandler> {
         }
 
         if (activeTab == 0) {
-            if (checkItemClick(x + 15, y + 40, "minecraft:diamond", getMarketPrice("minecraft:diamond"), "item", mouseX, mouseY)) return true;
-            if (checkItemClick(x + 15 + 60, y + 40, "minecraft:iron_ingot", getMarketPrice("minecraft:iron_ingot"), "item", mouseX, mouseY)) return true;
-            if (checkItemClick(x + 15 + 120, y + 40, "minecraft:gold_ingot", getMarketPrice("minecraft:gold_ingot"), "item", mouseX, mouseY)) return true;
+            if (checkItemClick(x + 15, y + 40, "minecraft:diamond", "item", mouseX, mouseY)) return true;
+            if (checkItemClick(x + 15 + 60, y + 40, "minecraft:iron_ingot", "item", mouseX, mouseY)) return true;
+            if (checkItemClick(x + 15 + 120, y + 40, "minecraft:gold_ingot", "item", mouseX, mouseY)) return true;
         } else if (activeTab == 1) {
-            if (checkItemClick(x + 15, y + 40, "minecraft:diamond", getMarketPrice("minecraft:diamond"), "sell", mouseX, mouseY)) return true;
-            if (checkItemClick(x + 15 + 60, y + 40, "minecraft:iron_ingot", getMarketPrice("minecraft:iron_ingot"), "sell", mouseX, mouseY)) return true;
-            if (checkItemClick(x + 15 + 120, y + 40, "minecraft:gold_ingot", getMarketPrice("minecraft:gold_ingot"), "sell", mouseX, mouseY)) return true;
+            if (checkItemClick(x + 15, y + 40, "minecraft:diamond", "sell", mouseX, mouseY)) return true;
+            if (checkItemClick(x + 15 + 60, y + 40, "minecraft:iron_ingot", "sell", mouseX, mouseY)) return true;
+            if (checkItemClick(x + 15 + 120, y + 40, "minecraft:gold_ingot", "sell", mouseX, mouseY)) return true;
         } else if (activeTab == 2) {
-            if (checkPokemonClick(x + 15, y + 40, "pikachu", getMarketPrice("pikachu"), mouseX, mouseY)) return true;
-            if (checkPokemonClick(x + 15 + 80, y + 40, "mewtwo", getMarketPrice("mewtwo"), mouseX, mouseY)) return true;
+            if (checkPokemonClick(x + 15, y + 40, "pikachu", mouseX, mouseY)) return true;
+            if (checkPokemonClick(x + 15 + 80, y + 40, "mewtwo", mouseX, mouseY)) return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
@@ -193,17 +193,17 @@ public class EconomyShopScreen extends HandledScreen<EconomyShopScreenHandler> {
         return item != null ? item.currentPrice : 0.0;
     }
 
-    private boolean checkItemClick(int x, int y, String id, double price, String type, double mx, double my) {
+    private boolean checkItemClick(int x, int y, String id, String type, double mx, double my) {
         if (mx >= x && mx <= x + 50 && my >= y && my <= y + 70) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new fr.shai.shaicrafteconomy.network.Networking.PurchasePayload(type, id, price));
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new fr.shai.shaicrafteconomy.network.Networking.PurchasePayload(type, id));
             return true;
         }
         return false;
     }
 
-    private boolean checkPokemonClick(int x, int y, String id, double price, double mx, double my) {
+    private boolean checkPokemonClick(int x, int y, String id, double mx, double my) {
         if (mx >= x && mx <= x + 70 && my >= y && my <= y + 70) {
-            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new fr.shai.shaicrafteconomy.network.Networking.PurchasePayload("pokemon", id, price));
+            net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new fr.shai.shaicrafteconomy.network.Networking.PurchasePayload("pokemon", id));
             return true;
         }
         return false;

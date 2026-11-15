@@ -9,6 +9,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 
+import fr.shai.shaicrafteconomy.ShaiCraftEconomy;
+import fr.shai.shaicrafteconomy.economy.AtomicJson;
+
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -79,6 +82,7 @@ public class LeverageTradeManager {
     private final File dataFile;
     // Map<playerUUID, List<Position>>
     private Map<String, List<Position>> positions = new HashMap<>();
+    private boolean dirty;
 
     public LeverageTradeManager() {
         this.dataFile = new File(
@@ -103,10 +107,16 @@ public class LeverageTradeManager {
         }
     }
 
-    public void save() {
-        try (FileWriter w = new FileWriter(dataFile)) {
-            GSON.toJson(positions, w);
-        } catch (IOException e) { e.printStackTrace(); }
+    public boolean saveIfDirty() {
+        if (!dirty) return false;
+        try {
+            AtomicJson.write(dataFile, GSON.toJson(positions));
+            dirty = false;
+            return true;
+        } catch (IOException e) {
+            ShaiCraftEconomy.LOGGER.error("Sauvegarde des positions à levier impossible.", e);
+            return false;
+        }
     }
 
     // ── Price history management ──────────────────────────────────────────────
@@ -125,14 +135,14 @@ public class LeverageTradeManager {
     // ── Position management ───────────────────────────────────────────────────
     public void openPosition(String playerUuid, Position pos) {
         positions.computeIfAbsent(playerUuid, k -> new ArrayList<>()).add(pos);
-        save();
+        dirty = true;
     }
 
     public boolean closePosition(String playerUuid, int index) {
         List<Position> list = positions.get(playerUuid);
         if (list == null || index >= list.size()) return false;
         list.remove(index);
-        save();
+        dirty = true;
         return true;
     }
 
@@ -159,7 +169,7 @@ public class LeverageTradeManager {
                 }
             }
         }
-        if (!liquidated.isEmpty()) save();
+        if (!liquidated.isEmpty()) dirty = true;
         return liquidated;
     }
 }

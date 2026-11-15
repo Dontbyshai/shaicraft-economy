@@ -9,9 +9,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 
+import fr.shai.shaicrafteconomy.ShaiCraftEconomy;
+import fr.shai.shaicrafteconomy.economy.AtomicJson;
+
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -25,6 +27,7 @@ public class TradeManager {
 
     // Map<PlayerUUID, Map<CoinID, Holding>>
     private Map<UUID, Map<String, Holding>> cryptoHoldings = new HashMap<>();
+    private boolean dirty;
 
     public static class Holding {
         public double amount;
@@ -63,11 +66,15 @@ public class TradeManager {
         }
     }
 
-    public void save() {
-        try (FileWriter writer = new FileWriter(TRADES_FILE)) {
-            GSON.toJson(cryptoHoldings, writer);
+    public boolean saveIfDirty() {
+        if (!dirty) return false;
+        try {
+            AtomicJson.write(TRADES_FILE, GSON.toJson(cryptoHoldings));
+            dirty = false;
+            return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            ShaiCraftEconomy.LOGGER.error("Sauvegarde des cryptos impossible.", e);
+            return false;
         }
     }
 
@@ -75,18 +82,18 @@ public class TradeManager {
         cryptoHoldings.computeIfAbsent(uuid, k -> new HashMap<>())
                       .computeIfAbsent(coinId, k -> new Holding(0, 0))
                       .add(amount, price);
-        save();
+        dirty = true;
     }
 
     public boolean recordSell(UUID uuid, String coinId, double price, double amount) {
         Map<String, Holding> holdings = cryptoHoldings.get(uuid);
         if (holdings == null || !holdings.containsKey(coinId)) return false;
-        
+
         Holding h = holdings.get(coinId);
-        if (h.amount < amount) return false;
-        
+        if (h.amount + 1.0e-8 < amount) return false;
+
         h.remove(amount);
-        save();
+        dirty = true;
         return true;
     }
 

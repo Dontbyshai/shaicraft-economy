@@ -43,7 +43,7 @@ public class MiningListener {
             Double reward = REWARDS.get(state.getBlock());
             if (reward != null && player instanceof ServerPlayerEntity serverPlayer) {
                 ShaiCraftEconomy.getInstance().getEconomyManager().addBalance(player.getUuid(), reward);
-                player.sendMessage(Text.literal("Vous avez miné du " + state.getBlock().getName().getString() + " ! Gain: " + String.format("%.2f", reward) + "€").formatted(Formatting.GREEN));
+                player.sendMessage(Text.translatable("msg.shaicraft-economy.mining_reward", String.format("%.2f", reward)).formatted(Formatting.GREEN));
             }
         });
     }

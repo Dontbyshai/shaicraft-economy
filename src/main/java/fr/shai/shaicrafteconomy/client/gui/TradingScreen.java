@@ -145,16 +145,16 @@ public class TradingScreen extends HandledScreen<TradingScreenHandler> {
         int bx = x + 70;
         int by = y + 40 + 95;
         if (my >= by && my <= by + 25) {
-            double price = prices.getOrDefault(selectedCoin, 0.0);
-            if (mx >= bx && mx <= bx + 80) sendAction("buy", price, selectedAmount);
-            else if (mx >= bx + 90 && mx <= bx + 170) sendAction("sell", price, selectedAmount);
+            if (mx >= bx && mx <= bx + 80) sendAction("buy", selectedAmount);
+            else if (mx >= bx + 90 && mx <= bx + 170) sendAction("sell", selectedAmount);
         }
 
         return super.mouseClicked(mx, my, button);
     }
 
-    private void sendAction(String type, double price, double amount) {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new Networking.CryptoActionPayload(type, selectedCoin, price, amount));
+    /** Le serveur ignore tout prix venant d'ici et relit CryptoManager. */
+    private void sendAction(String type, double amount) {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new Networking.CryptoActionPayload(type, selectedCoin, amount));
     }
 
     @Override
