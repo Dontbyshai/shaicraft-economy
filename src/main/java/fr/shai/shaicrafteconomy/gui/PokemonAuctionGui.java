@@ -204,16 +204,16 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
             // Left click → buy
             var optListing = mgr.findById(listingId);
             if (optListing.isEmpty()) {
-                sp.sendMessage(Text.literal("Cette annonce n'existe plus !").formatted(Formatting.RED));
+                sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_gone").formatted(Formatting.RED));
                 return;
             }
             AuctionListing listing = optListing.get();
             if (listing.sellerUuid().equals(sp.getUuid().toString())) {
-                sp.sendMessage(Text.literal("Vous ne pouvez pas acheter votre propre annonce !").formatted(Formatting.RED));
+                sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_own").formatted(Formatting.RED));
                 return;
             }
             if (!eco.removeBalance(sp.getUuid(), listing.price())) {
-                sp.sendMessage(Text.literal("Fonds insuffisants !").formatted(Formatting.RED));
+                sp.sendMessage(Text.translatable("msg.shaicraft-economy.insufficient_funds").formatted(Formatting.RED));
                 return;
             }
             // Give pokemon to buyer
@@ -222,9 +222,11 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
             // Pay seller
             UUID sellerUuid = UUID.fromString(listing.sellerUuid());
             eco.addBalance(sellerUuid, listing.price());
-            // Remove listing
+            ShaiCraftEconomy.getInstance().getTransactionLog().add(sp.getUuid(), "AUCTION_BUY", -listing.price(), listing.pokemonSpecies());
+            ShaiCraftEconomy.getInstance().getTransactionLog().add(sellerUuid, "AUCTION_SELL", listing.price(), listing.pokemonSpecies());
             mgr.removeListing(listing.id());
-            sp.sendMessage(Text.literal("Vous avez acheté " + capitalize(listing.pokemonSpecies()) + " Niv." + listing.pokemonLevel() + " pour " + fmt(listing.price()) + "€ !").formatted(Formatting.GREEN));
+            sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_bought",
+                capitalize(listing.pokemonSpecies()), listing.pokemonLevel(), fmt(listing.price())).formatted(Formatting.GREEN));
             // Notify seller if online
             sp.getServer().getPlayerManager().getPlayer(sellerUuid);
             return;
@@ -250,7 +252,7 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
             );
             party.remove(poke);
             mgr.addListing(listing);
-            sp.sendMessage(Text.literal("✓ " + poke.getDisplayName(true).getString() + " mis en vente pour " + fmt(price) + "€ !").formatted(Formatting.GREEN));
+            sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_listed", poke.getDisplayName(true).getString(), fmt(price)).formatted(Formatting.GREEN));
             sp.closeHandledScreen();
             sp.openHandledScreen(this);
             return;
@@ -271,7 +273,7 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
         mgr.removeListing(l.id());
         Pokemon poke = reconstructPokemon(l.pokemonNbt(), l.pokemonSpecies(), l.pokemonLevel());
         addPokemonToPlayer(sp, poke);
-        sp.sendMessage(Text.literal("Annonce retirée. " + capitalize(l.pokemonSpecies()) + " retourné dans votre PC.").formatted(Formatting.YELLOW));
+        sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_cancelled", capitalize(l.pokemonSpecies())).formatted(Formatting.YELLOW));
         sp.closeHandledScreen();
         sp.openHandledScreen(this);
     }
@@ -280,7 +282,7 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
         PlayerPartyStore party = Cobblemon.INSTANCE.getStorage().getParty(sp);
         if (!party.add(poke)) {
             Cobblemon.INSTANCE.getStorage().getPC(sp).add(poke);
-            sp.sendMessage(Text.literal("Equipe pleine – Pokémon envoyé dans le PC !").formatted(Formatting.YELLOW));
+            sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_pc").formatted(Formatting.YELLOW));
         }
     }
 
@@ -356,7 +358,7 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
         PlayerPartyStore party = Cobblemon.INSTANCE.getStorage().getParty(sp);
         Pokemon poke = party.get(partySlot);
         if (poke == null) {
-            sp.sendMessage(Text.literal("Aucun Pokémon dans ce slot d'équipe !").formatted(Formatting.RED));
+            sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_no_pokemon").formatted(Formatting.RED));
             return;
         }
 
@@ -374,7 +376,7 @@ public class PokemonAuctionGui implements NamedScreenHandlerFactory {
         );
         party.remove(poke);
         mgr.addListing(listing);
-        sp.sendMessage(Text.literal("✓ " + poke.getDisplayName(true).getString() + " mis en vente pour " + price + "€ !").formatted(Formatting.GREEN));
+        sp.sendMessage(Text.translatable("msg.shaicraft-economy.hdv_listed", poke.getDisplayName(true).getString(), String.format("%.2f", price)).formatted(Formatting.GREEN));
     }
 }
 

@@ -52,6 +52,10 @@ public class TradingGui implements NamedScreenHandlerFactory {
         customMargins.put(playerUuid, margin);
     }
 
+    public static void clearCustomMargin(UUID playerUuid) {
+        customMargins.remove(playerUuid);
+    }
+
     // ── Chart layout: rows 0–4 × cols 0–8 (45 slots) for chart ──────────────
     // Row 5 (slots 45–53): controls
     private static final int CHART_ROWS = 5;
@@ -296,9 +300,10 @@ public class TradingGui implements NamedScreenHandlerFactory {
                 if (returned < 0) returned = 0;
                 mgr.closePosition(uuid, slot);
                 eco.addBalance(sp.getUuid(), returned);
+                ShaiCraftEconomy.getInstance().getTransactionLog().add(sp.getUuid(), "LEVERAGE_CLOSE", returned, pos.coinId);
                 ShaiCraftEconomy.getInstance().syncBalance(sp);
-                sp.sendMessage(Text.literal(
-                    "✖ Position fermée | P&L: " + (pnl >= 0 ? "+" : "") + fmt(pnl) + "€ | Reçu: " + fmt(returned) + "€"
+                sp.sendMessage(Text.translatable("msg.shaicraft-economy.position_closed",
+                    (pnl >= 0 ? "+" : "") + fmt(pnl), fmt(returned)
                 ).formatted(pnl >= 0 ? Formatting.GREEN : Formatting.RED));
                 reopen(sp);
             }
@@ -335,23 +340,24 @@ public class TradingGui implements NamedScreenHandlerFactory {
         double price    = ShaiCraftEconomy.getInstance().getCryptoManager().getPrice(coin);
 
         if (price <= 0) {
-            sp.sendMessage(Text.literal("Prix indisponible, réessayez dans un instant.").formatted(Formatting.RED));
+            sp.sendMessage(Text.translatable("msg.shaicraft-economy.crypto_price_unavailable").formatted(Formatting.RED));
             return;
         }
 
         if (!eco.removeBalance(sp.getUuid(), margin)) {
-            sp.sendMessage(Text.literal("Fonds insuffisants ! Il vous faut " + fmt(margin) + "€ de marge.").formatted(Formatting.RED));
+            sp.sendMessage(Text.translatable("msg.shaicraft-economy.margin_missing", fmt(margin)).formatted(Formatting.RED));
             return;
         }
 
         Position pos = new Position(coin, isLong ? Direction.LONG : Direction.SHORT, margin, leverage, price);
         mgr.openPosition(sp.getUuid().toString(), pos);
+        ShaiCraftEconomy.getInstance().getTransactionLog().add(sp.getUuid(), "LEVERAGE_OPEN", -margin,
+            (isLong ? "LONG " : "SHORT ") + coin + " x" + (int) leverage);
         ShaiCraftEconomy.getInstance().syncBalance(sp);
 
-        sp.sendMessage(Text.literal(
-            (isLong ? "▲ LONG " : "▼ SHORT ") + coinNameFor(coin) + " x" + (int)leverage +
-            " | Marge: " + fmt(margin) + "€ | Taille: " + fmt(margin * leverage) + "€ | Entrée: " + fmt(price) + "€" +
-            " | Liq: " + fmt(pos.liquidationPrice()) + "€"
+        sp.sendMessage(Text.translatable("msg.shaicraft-economy.position_opened",
+            isLong ? "LONG" : "SHORT", coinNameFor(coin), (int) leverage,
+            fmt(margin), fmt(margin * leverage), fmt(price), fmt(pos.liquidationPrice())
         ).formatted(isLong ? Formatting.GREEN : Formatting.RED));
         reopen(sp);
     }

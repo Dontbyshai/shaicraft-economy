@@ -3,13 +3,14 @@
   "id": "shaicraft-economy",
   "version": "${version}",
   "name": "ShaiCraft Economy",
-  "description": "A Minecraft economy and trading mod with Pokémon integration using Cobblemon. Created by Shaï.",
+  "description": "Économie, magasin, trading crypto (Binance) et HDV Cobblemon. Créé par Shaï.",
   "authors": [
     "Shaï"
   ],
   "contact": {
-    "homepage": "https://example.com/",
-    "sources": "https://github.com/example/shaicraft-economy"
+    "homepage": "https://github.com/Dontbyshai/shaicraft-economy",
+    "sources": "https://github.com/Dontbyshai/shaicraft-economy",
+    "issues": "https://github.com/Dontbyshai/shaicraft-economy/issues"
   },
   "license": "MIT",
   "icon": "assets/shaicraft-economy/icon.png",
@@ -27,8 +28,5 @@
     "minecraft": "~${minecraft_version}",
     "fabric-api": "*",
     "cobblemon": "*"
-  },
-  "suggests": {
-    "another-mod": "*"
   }
 }

@@ -6,53 +6,119 @@ package fr.shai.shaicrafteconomy.market;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
+import fr.shai.shaicrafteconomy.economy.ModConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * Prix Binance. Le téléchargement se fait hors du thread Minecraft.
+ * Les prix ne sont copiés dans la map utilisée par le jeu que sur le thread serveur.
+ */
 public class CryptoManager {
-    private static final String BINANCE_API = "https://api.binance.com/api/v3/ticker/price?symbols=[\"BTCUSDT\",\"ETHUSDT\",\"SOLUSDT\",\"DOGEUSDT\"]";
-    private static final double USD_TO_EUR = 0.92; // Conversion factor for mod consistency
+    private static final Logger LOGGER = LoggerFactory.getLogger("shaicraft-economy");
     private final Map<String, Double> prices = new HashMap<>();
+    private final AtomicReference<Map<String, Double>> pending = new AtomicReference<>();
+    private boolean fetchFailureLogged;
 
     public CryptoManager() {
-        // Default fallbacks (EUR)
-        prices.put("bitcoin", 62000.0);
-        prices.put("ethereum", 3200.0);
-        prices.put("solana", 150.0);
-        prices.put("dogecoin", 0.14);
-    }
-
-    public void fetchPrices() {
-        try {
-            URL url = new URL(BINANCE_API);
-            InputStreamReader reader = new InputStreamReader(url.openStream());
-            // Binance returns a List of objects: [{"symbol":"BTCUSDT","price":"60000.00"}, ...]
-            java.util.List<Map<String, String>> data = new Gson().fromJson(reader, new TypeToken<java.util.List<Map<String, String>>>() {}.getType());
-            
-            if (data != null) {
-                for (Map<String, String> entry : data) {
-                    String symbol = entry.get("symbol");
-                    double priceUsd = Double.parseDouble(entry.get("price"));
-                    double priceEur = priceUsd * USD_TO_EUR;
-
-                    if (symbol.equals("BTCUSDT")) prices.put("bitcoin", priceEur);
-                    else if (symbol.equals("ETHUSDT")) prices.put("ethereum", priceEur);
-                    else if (symbol.equals("SOLUSDT")) prices.put("solana", priceEur);
-                    else if (symbol.equals("DOGEUSDT")) prices.put("dogecoin", priceEur);
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("[ShaiCraft Economy] Failed to fetch Binance prices. Using offline fallbacks.");
+        for (String coin : CryptoTradeRules.COINS) {
+            prices.put(coin, CryptoTradeRules.fallbackPrice(coin));
         }
     }
 
-    public Double getPrice(String id) {
-        return prices.getOrDefault(id, 0.0);
+    /**
+     * À appeler hors du thread serveur. Ne touche ni aux joueurs, ni aux mondes.
+     * @return les prix en euros, ou null si Binance ne répond pas.
+     */
+    public Map<String, Double> downloadPrices() {
+        double usdToEur = ModConfig.get().usdToEur;
+        StringBuilder symbols = new StringBuilder("[");
+        for (int i = 0; i < CryptoTradeRules.COINS.size(); i++) {
+            if (i > 0) symbols.append(',');
+            symbols.append('"').append(CryptoTradeRules.binanceSymbol(CryptoTradeRules.COINS.get(i))).append('"');
+        }
+        symbols.append(']');
+        String url = "https://api.binance.com/api/v3/ticker/price?symbols="
+            + URLEncoder.encode(symbols.toString(), StandardCharsets.UTF_8);
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
+            connection.setConnectTimeout(4000);
+            connection.setReadTimeout(4000);
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("User-Agent", "ShaiCraftEconomy/1.1");
+            int code = connection.getResponseCode();
+            if (code != 200) {
+                logFailure("HTTP " + code);
+                return null;
+            }
+            try (InputStreamReader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
+                List<Map<String, String>> data = new Gson().fromJson(reader, new TypeToken<List<Map<String, String>>>() {}.getType());
+                if (data == null || data.isEmpty()) {
+                    logFailure("réponse vide");
+                    return null;
+                }
+                Map<String, Double> next = new HashMap<>();
+                for (Map<String, String> entry : data) {
+                    String coinId = CryptoTradeRules.coinForSymbol(entry.get("symbol"));
+                    String raw = entry.get("price");
+                    if (coinId == null || raw == null) continue;
+                    double priceUsd = Double.parseDouble(raw);
+                    if (!Double.isFinite(priceUsd) || priceUsd <= 0) continue;
+                    next.put(coinId, priceUsd * usdToEur);
+                }
+                if (next.isEmpty()) {
+                    logFailure("aucun symbole reconnu");
+                    return null;
+                }
+                fetchFailureLogged = false;
+                return next;
+            }
+        } catch (Exception e) {
+            logFailure(e.getClass().getSimpleName());
+            return null;
+        } finally {
+            if (connection != null) connection.disconnect();
+        }
     }
 
-    public Map<String, Double> getAllPrices() {
-        return prices;
+    private void logFailure(String reason) {
+        if (!fetchFailureLogged) {
+            LOGGER.warn("Prix Binance indisponibles ({}). Les derniers prix restent en place.", reason);
+            fetchFailureLogged = true;
+        }
+    }
+
+    public void queuePrices(Map<String, Double> fetched) {
+        if (fetched != null && !fetched.isEmpty()) {
+            pending.set(Map.copyOf(fetched));
+        }
+    }
+
+    /** À appeler uniquement sur le thread serveur. */
+    public synchronized boolean applyPending() {
+        Map<String, Double> incoming = pending.getAndSet(null);
+        if (incoming == null || incoming.isEmpty()) return false;
+        prices.putAll(incoming);
+        return true;
+    }
+
+    public synchronized double getPrice(String id) {
+        Double value = prices.get(id);
+        return value == null ? 0.0 : value;
+    }
+
+    public synchronized Map<String, Double> getAllPrices() {
+        return new HashMap<>(prices);
     }
 }

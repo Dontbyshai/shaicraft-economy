@@ -123,7 +123,7 @@ public class EconomyShopGui implements NamedScreenHandlerFactory {
 
     @Override
     public Text getDisplayName() {
-        return Text.literal("ShaiCraft Official Shop").formatted(Formatting.BOLD, Formatting.GOLD);
+        return Text.translatable("gui.shaicraft-economy.shop_title").formatted(Formatting.BOLD, Formatting.GOLD);
     }
 
     @Override
@@ -136,10 +136,9 @@ public class EconomyShopGui implements NamedScreenHandlerFactory {
             if (slot >= 27) break; 
             ItemStack stack = new ItemStack(entry.getKey());
             stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("Buy Price: ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.format("%.2f", entry.getValue()) + "€").formatted(Formatting.YELLOW)),
+                Text.translatable("gui.shaicraft-economy.buy_price", String.format("%.2f", entry.getValue())).formatted(Formatting.YELLOW),
                 Text.empty(),
-                Text.literal("Left-Click to BUY").formatted(Formatting.AQUA)
+                Text.translatable("gui.shaicraft-economy.click_buy").formatted(Formatting.AQUA)
             )));
             inventory.setStack(slot++, stack);
         }
@@ -150,10 +149,9 @@ public class EconomyShopGui implements NamedScreenHandlerFactory {
             if (slot >= 27) break;
             ItemStack stack = new ItemStack(entry.getKey());
             stack.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("Sell Price: ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.format("%.2f", entry.getValue()) + "€").formatted(Formatting.GREEN)),
+                Text.translatable("gui.shaicraft-economy.sell_price", String.format("%.2f", entry.getValue())).formatted(Formatting.GREEN),
                 Text.empty(),
-                Text.literal("Right-Click to SELL").formatted(Formatting.GOLD)
+                Text.translatable("gui.shaicraft-economy.click_sell").formatted(Formatting.GOLD)
             )));
             inventory.setStack(slot++, stack);
         }
@@ -161,12 +159,11 @@ public class EconomyShopGui implements NamedScreenHandlerFactory {
         // Fill Pokemon Shop
         POKEMON_SHOP.forEach((s, entry) -> {
             ItemStack egg = new ItemStack(Items.EGG);
-            egg.set(DataComponentTypes.CUSTOM_NAME, Text.literal("Buy " + entry.displayName).formatted(entry.color, Formatting.BOLD));
+            egg.set(DataComponentTypes.CUSTOM_NAME, Text.translatable("gui.shaicraft-economy.buy_pokemon", entry.displayName).formatted(entry.color, Formatting.BOLD));
             egg.set(DataComponentTypes.LORE, new LoreComponent(List.of(
-                Text.literal("Price: ").formatted(Formatting.GRAY)
-                .append(Text.literal(String.format("%.2f", entry.price) + "€").formatted(Formatting.GOLD)),
+                Text.translatable("gui.shaicraft-economy.pokemon_price", String.format("%.2f", entry.price)).formatted(Formatting.GOLD),
                 Text.empty(),
-                Text.literal("Direct to Party/PC").formatted(Formatting.DARK_AQUA)
+                Text.translatable("gui.shaicraft-economy.pokemon_dest").formatted(Formatting.DARK_AQUA)
             )));
             inventory.setStack(s, egg);
         });
@@ -200,13 +197,16 @@ public class EconomyShopGui implements NamedScreenHandlerFactory {
                     Double price = BUY_PRICES.get(item);
                     if (price != null) {
                         if (eco.removeBalance(player.getUuid(), price)) {
-                            player.getInventory().insertStack(new ItemStack(item));
-                            player.sendMessage(Text.literal("Purchased ").formatted(Formatting.GREEN)
-                                    .append(item.getName())
-                                    .append(Text.literal(" for " + String.format("%.2f", price) + "€").formatted(Formatting.YELLOW)));
+                            if (!player.getInventory().insertStack(new ItemStack(item))) {
+                                eco.addBalance(player.getUuid(), price);
+                                player.sendMessage(Text.translatable("msg.shaicraft-economy.inventory_full").formatted(Formatting.RED));
+                                return;
+                            }
+                            ShaiCraftEconomy.getInstance().getTransactionLog().add(player.getUuid(), "SHOP_BUY", -price, Registries.ITEM.getId(item).toString());
+                            player.sendMessage(Text.translatable("msg.shaicraft-economy.buy_success", item.getName().getString(), String.format("%.2f", price)).formatted(Formatting.GREEN));
                             ShaiCraftEconomy.getInstance().syncBalance(sPlayer);
                         } else {
-                            player.sendMessage(Text.literal("Insufficient funds!").formatted(Formatting.RED));
+                            player.sendMessage(Text.translatable("msg.shaicraft-economy.insufficient_funds").formatted(Formatting.RED));
                         }
                     }
                 } 
@@ -234,12 +234,11 @@ public class EconomyShopGui implements NamedScreenHandlerFactory {
                             }
                             
                             eco.addBalance(player.getUuid(), price);
-                            player.sendMessage(Text.literal("Sold ").formatted(Formatting.GOLD)
-                                    .append(item.getName())
-                                    .append(Text.literal(" for " + String.format("%.2f", price) + "€").formatted(Formatting.GREEN)));
+                            ShaiCraftEconomy.getInstance().getTransactionLog().add(player.getUuid(), "SHOP_SELL", price, Registries.ITEM.getId(item).toString());
+                            player.sendMessage(Text.translatable("msg.shaicraft-economy.sell_success", 1, item.getName().getString(), String.format("%.2f", price)).formatted(Formatting.GOLD));
                             ShaiCraftEconomy.getInstance().syncBalance(sPlayer);
                         } else {
-                            player.sendMessage(Text.literal("You don't have this item!").formatted(Formatting.RED));
+                            player.sendMessage(Text.translatable("msg.shaicraft-economy.missing_item").formatted(Formatting.RED));
                         }
                     }
                 }
