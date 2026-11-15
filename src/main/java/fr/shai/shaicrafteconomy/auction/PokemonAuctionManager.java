@@ -8,6 +8,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 
+import fr.shai.shaicrafteconomy.ShaiCraftEconomy;
+import fr.shai.shaicrafteconomy.economy.AtomicJson;
+
 import java.io.*;
 import java.lang.reflect.Type;
 import java.util.*;
@@ -28,6 +31,7 @@ public class PokemonAuctionManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private final File dataFile;
     private List<AuctionListing> listings = new ArrayList<>();
+    private boolean dirty;
 
     public PokemonAuctionManager() {
         this.dataFile = new File(
@@ -48,20 +52,26 @@ public class PokemonAuctionManager {
         }
     }
 
-    public void save() {
-        try (FileWriter w = new FileWriter(dataFile)) {
-            GSON.toJson(listings, w);
-        } catch (IOException e) { e.printStackTrace(); }
+    public boolean saveIfDirty() {
+        if (!dirty) return false;
+        try {
+            AtomicJson.write(dataFile, GSON.toJson(listings));
+            dirty = false;
+            return true;
+        } catch (IOException e) {
+            ShaiCraftEconomy.LOGGER.error("Sauvegarde de l'hôtel des ventes impossible.", e);
+            return false;
+        }
     }
 
     public void addListing(AuctionListing listing) {
         listings.add(listing);
-        save();
+        dirty = true;
     }
 
     public boolean removeListing(String id) {
         boolean removed = listings.removeIf(l -> l.id().equals(id));
-        if (removed) save();
+        if (removed) dirty = true;
         return removed;
     }
 

@@ -25,7 +25,8 @@ public class Networking {
     }
 
     public static final Identifier PURCHASE_ID = Identifier.of(ShaiCraftEconomy.MOD_ID, "purchase");
-    public record PurchasePayload(String action, String id, double price) implements CustomPayload {
+    /** Le prix n'est pas dans le paquet : le serveur le lit dans MarketManager. */
+    public record PurchasePayload(String action, String id) implements CustomPayload {
         public static final CustomPayload.Id<PurchasePayload> ID = new CustomPayload.Id<>(PURCHASE_ID);
         @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
     }
@@ -61,7 +62,12 @@ public class Networking {
     }
 
     public static final Identifier CRYPTO_ACTION_ID = Identifier.of(ShaiCraftEconomy.MOD_ID, "crypto_action");
-    public record CryptoActionPayload(String action, String coinId, double price, double amount) implements CustomPayload {
+    /**
+     * Achat ou vente de crypto.
+     * Le prix n'est volontairement pas envoyé par le client : un client modifié
+     * pourrait sinon acheter du bitcoin à 1 €. CryptoManager fait foi.
+     */
+    public record CryptoActionPayload(String action, String coinId, double amount) implements CustomPayload {
         public static final CustomPayload.Id<CryptoActionPayload> ID = new CustomPayload.Id<>(CRYPTO_ACTION_ID);
         @Override public CustomPayload.Id<? extends CustomPayload> getId() { return ID; }
     }
@@ -76,9 +82,8 @@ public class Networking {
             (payload, buf) -> {
                 buf.writeString(payload.action());
                 buf.writeString(payload.id());
-                buf.writeDouble(payload.price());
             },
-            buf -> new PurchasePayload(buf.readString(), buf.readString(), buf.readDouble())
+            buf -> new PurchasePayload(buf.readString(), buf.readString())
         );
 
         PacketCodec<RegistryByteBuf, MarketUpdatePayload> marketCodec = PacketCodec.<RegistryByteBuf, MarketUpdatePayload>of(
@@ -167,10 +172,9 @@ public class Networking {
             (payload, buf) -> {
                 buf.writeString(payload.action());
                 buf.writeString(payload.coinId());
-                buf.writeDouble(payload.price());
                 buf.writeDouble(payload.amount());
             },
-            buf -> new CryptoActionPayload(buf.readString(), buf.readString(), buf.readDouble(), buf.readDouble())
+            buf -> new CryptoActionPayload(buf.readString(), buf.readString(), buf.readDouble())
         );
 
         PayloadTypeRegistry.playS2C().register(BalanceUpdatePayload.ID, balanceCodecCorrect);

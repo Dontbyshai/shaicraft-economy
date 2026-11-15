@@ -4,4 +4,5 @@ build/
 *.iml
 run/
 build_log.txt
-gradle/wrapper/gradle-wrapper.jar
+.DS_Store
+*.tmp

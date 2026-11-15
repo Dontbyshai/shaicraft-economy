@@ -31,6 +31,7 @@ public class CobblemonIntegration {
         double price = calculatePrice(pokemon);
         party.remove(pokemon);
         ShaiCraftEconomy.getInstance().getEconomyManager().addBalance(player.getUuid(), price);
+        ShaiCraftEconomy.getInstance().getTransactionLog().add(player.getUuid(), "SHOP_SELL", price, pokemon.getSpecies().getName());
         player.sendMessage(Text.translatable("msg.shaicraft-economy.pokemon_sell_success",
             pokemon.getDisplayName(true).getString(),
             String.format("%.2f", price)).formatted(Formatting.GREEN));
@@ -58,20 +59,17 @@ public class CobblemonIntegration {
         Pokemon pokemon = PokemonProperties.Companion.parse("species=" + species + " level=" + level).create();
 
         PlayerPartyStore party = Cobblemon.INSTANCE.getStorage().getParty(player);
-        String locationMsg;
-        if (party.add(pokemon)) {
-            locationMsg = "§a✔ Ajouté à votre équipe !";
-        } else {
+        boolean inParty = party.add(pokemon);
+        if (!inParty) {
             Cobblemon.INSTANCE.getStorage().getPC(player).add(pokemon);
-            locationMsg = "§e⚠ Équipe pleine – Pokémon envoyé dans votre PC !";
         }
 
-        player.sendMessage(Text.literal(
-            "§b" + pokemon.getDisplayName(true).getString() +
-            " §7(Niv.§f" + level + "§7) acheté pour §6" +
-            String.format("%,.0f", price) + "€"
-        ));
-        player.sendMessage(Text.literal(locationMsg));
+        ShaiCraftEconomy.getInstance().getTransactionLog().add(player.getUuid(), "SHOP_BUY", -price, species);
+        player.sendMessage(Text.translatable("msg.shaicraft-economy.pokemon_bought",
+            pokemon.getDisplayName(true).getString(), level, String.format("%,.0f", price)).formatted(Formatting.AQUA));
+        player.sendMessage(Text.translatable(inParty
+            ? "msg.shaicraft-economy.pokemon_to_party"
+            : "msg.shaicraft-economy.pokemon_to_pc").formatted(inParty ? Formatting.GREEN : Formatting.YELLOW));
         return 1;
     }
 

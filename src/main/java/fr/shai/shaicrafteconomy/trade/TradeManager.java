@@ -53,8 +53,8 @@ public class TradeManager {
             // Return items to players
             returnItems(player1, true);
             returnItems(player2, false);
-            player1.sendMessage(Text.literal("Échange annulé.").formatted(Formatting.RED));
-            player2.sendMessage(Text.literal("Échange annulé.").formatted(Formatting.RED));
+            player1.sendMessage(Text.translatable("msg.shaicraft-economy.trade_cancelled").formatted(Formatting.RED));
+            player2.sendMessage(Text.translatable("msg.shaicraft-economy.trade_cancelled").formatted(Formatting.RED));
             closeGUIs();
         }
 
@@ -78,12 +78,12 @@ public class TradeManager {
             // Check balances
             if (eco.getBalance(player1.getUuid()) < p1Money) {
                 cancel();
-                player1.sendMessage(Text.literal("Fonds insuffisants !").formatted(Formatting.RED));
+                player1.sendMessage(Text.translatable("msg.shaicraft-economy.insufficient_funds").formatted(Formatting.RED));
                 return;
             }
             if (eco.getBalance(player2.getUuid()) < p2Money) {
                 cancel();
-                player2.sendMessage(Text.literal("Fonds insuffisants !").formatted(Formatting.RED));
+                player2.sendMessage(Text.translatable("msg.shaicraft-economy.insufficient_funds").formatted(Formatting.RED));
                 return;
             }
 
@@ -93,6 +93,16 @@ public class TradeManager {
             
             eco.removeBalance(player2.getUuid(), p2Money);
             eco.addBalance(player1.getUuid(), p2Money);
+
+            var history = ShaiCraftEconomy.getInstance().getTransactionLog();
+            if (p1Money > 0) {
+                history.add(player1.getUuid(), "TRADE_SENT", -p1Money, player2.getName().getString());
+                history.add(player2.getUuid(), "TRADE_RECEIVED", p1Money, player1.getName().getString());
+            }
+            if (p2Money > 0) {
+                history.add(player2.getUuid(), "TRADE_SENT", -p2Money, player1.getName().getString());
+                history.add(player1.getUuid(), "TRADE_RECEIVED", p2Money, player2.getName().getString());
+            }
             
             ShaiCraftEconomy.getInstance().syncBalance(player1);
             ShaiCraftEconomy.getInstance().syncBalance(player2);
@@ -101,8 +111,8 @@ public class TradeManager {
             giveItems(player1, false); // P1 gets P2's items
             giveItems(player2, true);  // P2 gets P1's items
 
-            player1.sendMessage(Text.literal("Échange réussi !").formatted(Formatting.GREEN));
-            player2.sendMessage(Text.literal("Échange réussi !").formatted(Formatting.GREEN));
+            player1.sendMessage(Text.translatable("msg.shaicraft-economy.trade_success").formatted(Formatting.GREEN));
+            player2.sendMessage(Text.translatable("msg.shaicraft-economy.trade_success").formatted(Formatting.GREEN));
             closeGUIs();
         }
 
@@ -128,28 +138,28 @@ public class TradeManager {
 
     public void sendRequest(ServerPlayerEntity sender, ServerPlayerEntity target) {
         if (sender.getUuid().equals(target.getUuid())) {
-            sender.sendMessage(Text.literal("Vous ne pouvez pas échanger avec vous-même !").formatted(Formatting.RED));
+            sender.sendMessage(Text.translatable("msg.shaicraft-economy.trade_self").formatted(Formatting.RED));
             return;
         }
         if (activeSessions.containsKey(sender.getUuid()) || activeSessions.containsKey(target.getUuid())) {
-            sender.sendMessage(Text.literal("L'un des joueurs est déjà en échange !").formatted(Formatting.RED));
+            sender.sendMessage(Text.translatable("msg.shaicraft-economy.trade_busy").formatted(Formatting.RED));
             return;
         }
 
         pendingRequests.put(target.getUuid(), sender.getUuid());
-        sender.sendMessage(Text.literal("Demande d'échange envoyée à " + target.getName().getString() + ".").formatted(Formatting.GREEN));
+        sender.sendMessage(Text.translatable("msg.shaicraft-economy.trade_sent", target.getName().getString()).formatted(Formatting.GREEN));
 
-        Text acceptBtn = Text.literal("[Accepter]")
+        Text acceptBtn = Text.translatable("msg.shaicraft-economy.trade_accept")
             .formatted(Formatting.GREEN, Formatting.BOLD)
             .styled(s -> s.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/trade accept " + sender.getName().getString())));
-        
-        target.sendMessage(Text.literal(sender.getName().getString() + " veut échanger avec vous ! ").formatted(Formatting.YELLOW).append(acceptBtn));
+
+        target.sendMessage(Text.translatable("msg.shaicraft-economy.trade_request", sender.getName().getString()).formatted(Formatting.YELLOW).append(acceptBtn));
     }
 
     public void acceptRequest(ServerPlayerEntity target, ServerPlayerEntity sender) {
         UUID expectedSender = pendingRequests.get(target.getUuid());
         if (expectedSender == null || !expectedSender.equals(sender.getUuid())) {
-            target.sendMessage(Text.literal("Aucune demande en attente de ce joueur.").formatted(Formatting.RED));
+            target.sendMessage(Text.translatable("msg.shaicraft-economy.trade_no_request").formatted(Formatting.RED));
             return;
         }
         
@@ -186,8 +196,8 @@ public class TradeManager {
         if (session != null) {
             player.closeHandledScreen();
             awaitingMoneyInput.put(player.getUuid(), session);
-            player.sendMessage(Text.literal("Saisissez le montant en euros (ex: 500) dans le chat :").formatted(Formatting.GOLD, Formatting.BOLD));
-            player.sendMessage(Text.literal("Tapez 'annuler' pour annuler.").formatted(Formatting.GRAY));
+            player.sendMessage(Text.translatable("msg.shaicraft-economy.trade_ask_money").formatted(Formatting.GOLD, Formatting.BOLD));
+            player.sendMessage(Text.translatable("msg.shaicraft-economy.trade_cancel_hint").formatted(Formatting.GRAY));
         }
     }
 
@@ -196,7 +206,7 @@ public class TradeManager {
         if (session == null) return false; // Let normal chat proceed
 
         if (message.trim().equalsIgnoreCase("annuler")) {
-            player.sendMessage(Text.literal("Saisie annulée.").formatted(Formatting.YELLOW));
+            player.sendMessage(Text.translatable("msg.shaicraft-economy.trade_input_cancelled").formatted(Formatting.YELLOW));
             openGuiFor(player);
             return true;
         }
@@ -206,7 +216,7 @@ public class TradeManager {
             if (amount < 0) amount = 0;
             EconomyManager eco = ShaiCraftEconomy.getInstance().getEconomyManager();
             if (amount > eco.getBalance(player.getUuid())) {
-                player.sendMessage(Text.literal("Fonds insuffisants ! Vous n'avez que " + String.format("%.2f", eco.getBalance(player.getUuid())) + "€").formatted(Formatting.RED));
+                player.sendMessage(Text.translatable("msg.shaicraft-economy.trade_too_poor", String.format("%.2f", eco.getBalance(player.getUuid()))).formatted(Formatting.RED));
                 awaitingMoneyInput.put(player.getUuid(), session); // allow retry
                 return true;
             }
@@ -225,7 +235,7 @@ public class TradeManager {
             openGuiFor(session.player2);
             
         } catch (NumberFormatException e) {
-            player.sendMessage(Text.literal("Montant invalide, veuillez entrer un nombre.").formatted(Formatting.RED));
+            player.sendMessage(Text.translatable("msg.shaicraft-economy.trade_invalid_number").formatted(Formatting.RED));
             awaitingMoneyInput.put(player.getUuid(), session); // allow retry
         }
         return true; // Input handled, hide from chat

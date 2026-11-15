@@ -9,9 +9,11 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import net.fabricmc.loader.api.FabricLoader;
 
+import fr.shai.shaicrafteconomy.ShaiCraftEconomy;
+import fr.shai.shaicrafteconomy.economy.AtomicJson;
+
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -25,6 +27,7 @@ public class InvestmentManager {
 
     // Map<PlayerUUID, Map<InvestmentID, Level>>
     private Map<UUID, Map<String, Integer>> playerInvestments = new HashMap<>();
+    private boolean dirty;
 
     public void load() {
         if (!INVESTMENT_FILE.exists()) return;
@@ -36,11 +39,15 @@ public class InvestmentManager {
         }
     }
 
-    public void save() {
-        try (FileWriter writer = new FileWriter(INVESTMENT_FILE)) {
-            GSON.toJson(playerInvestments, writer);
+    public boolean saveIfDirty() {
+        if (!dirty) return false;
+        try {
+            AtomicJson.write(INVESTMENT_FILE, GSON.toJson(playerInvestments));
+            dirty = false;
+            return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            ShaiCraftEconomy.LOGGER.error("Sauvegarde des investissements impossible.", e);
+            return false;
         }
     }
 
@@ -51,7 +58,7 @@ public class InvestmentManager {
 
     public void setLevel(UUID uuid, String id, int level) {
         playerInvestments.computeIfAbsent(uuid, k -> new HashMap<>()).put(id, level);
-        save();
+        dirty = true;
     }
 
     public Map<String, Integer> getInvestments(UUID uuid) {
